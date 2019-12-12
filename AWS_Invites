@@ -1,0 +1,124 @@
+public class AWS_OpportunityInvites
+{
+	String accountId;
+	String accountName;
+	String agencyCode;
+	String ImplementationContactfirstName;
+	String ImplementationContactlastName;
+	String ImplementationContactEmail;
+    String ImplementationContactId;
+    String OpportunityOwnerName;
+	String OpportunityOwnerEmail;
+	String lastModifiedDate;
+	String lastModifiedByLastName;
+	String lastModifiedByFirstName;
+    String lastModifiedByEmail;
+	String OpportunityID;
+	String MAPGrowth_MAPSkillsImplementation;
+	String EXPEDITEDImplementation;
+	String ReImplementation;
+	String Source;
+    String ImplementationCaseNumber;
+    String ImplementationCaseID;
+    Boolean DoNotSendWelcomeEmail;
+    Decimal ImpNeeded;
+    String Region;
+	
+	public AWS_OpportunityInvites()
+	{
+	}
+
+	public void setAccountId(String accountId) {
+		this.accountId = accountId;
+	}
+
+	public void setAccountName(String accountName) {
+		this.accountName = accountName;
+	}
+
+	public void setAgencyCode(String agencyCode) {
+		this.agencyCode = agencyCode;
+	}
+
+	public void setImplementationContactfirstName(String ImplementationContactfirstName) {
+		this.ImplementationContactfirstName = ImplementationContactfirstName;
+	}
+
+	public void setImplementationContactlastName(String ImplementationContactlastName) {
+		this.ImplementationContactlastName = ImplementationContactlastName;
+	}
+
+	public void setImplementationContactEmail(String ImplementationContactEmail) {
+		this.ImplementationContactEmail = ImplementationContactEmail;
+	}
+    
+    public void setImplementationContactId(String ImplementationContactId) {
+		this.ImplementationContactId = ImplementationContactId;
+	}
+
+	public void setOpportunityOwnerName(String OpportunityOwnerName) {
+		this.OpportunityOwnerName = OpportunityOwnerName;
+	}
+
+	public void setOpportunityOwnerEmail(String OpportunityOwnerEmail) {
+		this.OpportunityOwnerEmail = OpportunityOwnerEmail;
+	}
+
+
+	public void setLastModifiedDate(String lastModifiedDate) {
+		this.lastModifiedDate = lastModifiedDate;
+	}
+
+	public void setLastModifiedByLastName(String lastModifiedByLastName) {
+		this.lastModifiedByLastName = lastModifiedByLastName;
+	}
+
+	public void setLastModifiedByFirstName(String lastModifiedByFirstName) {
+		this.lastModifiedByFirstName = lastModifiedByFirstName;
+	}
+    
+    public void setLastModifiedByEmail(String lastModifiedByEmail) {
+		this.lastModifiedByEmail = lastModifiedByEmail;
+	}
+
+	public void setOpportunityID(String OpportunityID) {
+		this.OpportunityID = OpportunityID;
+	}
+
+	public void setMAPGrowth_MAPSkillsImplementation(String MAPGrowth_MAPSkillsImplementation) {
+		this.MAPGrowth_MAPSkillsImplementation = MAPGrowth_MAPSkillsImplementation;
+	}
+	
+	public void setEXPEDITEDImplementation(String EXPEDITEDImplementation) {
+		this.EXPEDITEDImplementation = EXPEDITEDImplementation;
+	}
+
+	public void setReImplementation(String ReImplementation) {
+		this.ReImplementation = ReImplementation;
+	}
+
+	public void setImplementationCaseNumber(String ImplementationCaseNumber) {
+		this.ImplementationCaseNumber = ImplementationCaseNumber;
+	}
+    
+	public void setImplementationCaseID(String ImplementationCaseID) {
+		this.ImplementationCaseID = ImplementationCaseID;
+	}
+    
+    public void setSource(String Source) {
+		this.Source = Source;
+	}
+
+	public void setDoNotSendWelcomeEmail(Boolean DoNotSendWelcomeEmail) {
+		this.DoNotSendWelcomeEmail = DoNotSendWelcomeEmail;
+	}
+    
+ 	public void setImpNeeded(Decimal ImpNeeded) {
+		this.ImpNeeded = ImpNeeded;
+	}  
+    
+ 	public void setRegion(String Region) {
+		this.Region = Region;
+	}
+
+}
