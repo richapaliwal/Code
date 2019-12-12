@@ -1,0 +1,65 @@
+//This trigger is created for case #02115240.
+//This is trigger restricts everyone from 'Closed-Won'ing the opportunity if it doesn't have workshop record of either 'Workshop Event' or 'PD package' Record Type, 
+//and a product whose unit is 'PD Packge' or 'Workshop'.
+//If opportunity product Product.Unit (product2) = “PL Bundle” or “Workshop” AND 
+//Opportunity.Type does not equal “Enrollment” or “Enrollment in WBM” 
+//AND 
+//Count of (related) Workshop recordtype = “PD Package” or “Workshop Event” = 0 
+//Then “Closed/Won” fails 
+//With error message: “You must add a Workshop record for a PD Package or Workshop Event in order to close this opportunity.”
+
+trigger OpportunityValidationOnWorkshopAndProduct on Opportunity (before update) 
+{
+    //map collection to store ID and mapped opportunity.
+  map<id,opportunity> allopportunity=new map<id,opportunity>();
+    
+ if (Trigger.isBefore && Trigger.isUpdate){
+
+    for (Opportunity oppobj : Trigger.new) {
+        if(oppobj.Type != 'Enrollment')
+        {
+            //oldmap-A map of IDs to the old versions of the sObject records. get the stagename of opportunity before update.
+            if(trigger.oldmap.get(oppobj.id).stagename != 'Closed Won')
+            {
+                //see if the new version of this id has stage name 'closed won'
+                if(trigger.newmap.get(oppobj.id).stagename == 'Closed Won')
+                {
+                    //if yes, then put it in the mapped collection, 'allopportunity'.
+                    allopportunity.put(oppobj.id,oppobj);
+                }   
+                    system.debug('Opportunity@@'+allopportunity);
+            }
+    }
+    }
+
+     //if this collection has more than zero opportunities.
+    if(allopportunity.size()>0){
+        
+        //see if it has workshop of 'workshop event' or 'PD Package'
+        for(List<WORKSHOP__c> Wshop: [SELECT ID FROM WORKSHOP__c where Opportunity__c != '' AND Opportunity__c IN :allopportunity.keySet() AND (Workshop__c.RecordTypeId = '01270000000HmPpAAK' OR Workshop__c.RecordTypeId = '01270000000HnvkAAC')])
+        {
+            
+            //if the workshop list is empty
+            If(Wshop.size() == 0){
+                    
+                
+                //and if the opportunity has product 'PL Bundle' or 'Workshop'
+                for(List<OpportunityLineItem> Oli : [SELECT Id, PricebookEntry.Product2.Name, PricebookEntry.Product2.Unit__c FROM OpportunityLineItem WHERE OpportunityId !='' AND OpportunityId In :allopportunity.keySet() AND (PricebookEntry.Product2.Unit__c = 'PL Bundle' OR PricebookEntry.Product2.Unit__c = 'Workshop')])
+                {
+                    system.debug('Line Item@@'+oli);
+                    if(Oli.size() >0 )
+                    {
+                        //Trigger the validation error
+                            trigger.new[0].addError('You must add a Workshop record for a PD Package or Workshop Event in order to close this opportunity.');
+                            
+                            system.debug('Trigger Validation@@'+oli);
+                                               
+                    }
+                }
+                
+            }
+        }
+            
+            }
+}
+}
