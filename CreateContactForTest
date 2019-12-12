@@ -1,0 +1,13 @@
+// 04/14/2014
+@isTest
+public class Test_SharedNewContact 
+{
+    // create a new Contact to be used for testing
+    public static void createContact(String strContactName) 
+    {
+        Contact c = new Contact();
+		c.RecordTypeId  = 'RecordId'
+        c.LastName = strContactName;
+        insert c;
+    }
+}
