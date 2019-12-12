@@ -1,0 +1,489 @@
+// 10/10/2013
+@isTest(seeAllData=true)
+private class TestOpportunityCloneController 
+{
+
+static testMethod void testNullOppCloneController() 
+{
+    // setup a reference to the page the controller is expecting with the parameters
+    PageReference pref = Page.CreateOppClone;
+    Test.setCurrentPage(pref);
+    
+    // call Test_SharedNewAccount to create a new Test Account
+    //Test_SharedNewAccount.createAccount('Test Account');
+    
+    // Test Creation of the Shared Account
+    Account acct = [SELECT Id FROM Account WHERE Name = 'NWEA Pottsboro' LIMIT 1];
+    System.Assert(acct != null, 'testNullOppCloneController.testNullOppCloneController FAIL: Account was not inserted properly!');
+    
+    // setup a new Opportunity
+    Opportunity opp = new Opportunity(name = 'CreateOppTest',StageName = 'Solutions',CloseDate = Date.newInstance(2013,09,30),License_Start_Date__c = Date.newInstance(2013,09,1),License_End_Date__c = Date.newInstance(2014,09,30),AccountId = acct.Id);
+    insert opp;
+    
+    // Construct the standard controller
+    ApexPages.StandardController con = new ApexPages.StandardController(opp);
+
+    // create the controller
+    OpportunityCloneController ext = new OpportunityCloneController(con);
+
+    // Switch to test context
+    Test.startTest();
+
+    // set the Opportunity Id to null
+    opp.Id = null;
+    
+    // call the autoRun method
+    PageReference ref = ext.autoRun();
+    
+    // make sure that the PageReference is null
+    System.assertEquals(ref,null);
+    
+    // Switch back to runtime context
+    Test.stopTest();
+}
+ 
+static testMethod void testCreateOppCloneController() 
+{
+    // setup a reference to the page the controller is expecting with the parameters
+    PageReference pref = Page.CreateOppClone;
+    Test.setCurrentPage(pref);
+    
+    // call Test_SharedNewAccount to create a new Test Account
+    //Test_SharedNewAccount.createAccount('Test Account');
+    
+    // Test Creation of the Shared Account
+    Account acct = [SELECT Id FROM Account WHERE Name = 'NWEA Pottsboro' LIMIT 1];
+    System.Assert(acct != null, 'testNullOppCloneController.testNullOppCloneController FAIL: Account was not inserted properly!');
+
+    // setup a new Opportunity
+    Opportunity opp = new Opportunity(name = 'CreateOppTest',StageName = 'Solutions',CloseDate = Date.newInstance(2013,09,30),License_Start_Date__c = Date.newInstance(2013,09,1),License_End_Date__c = Date.newInstance(2014,09,30),AccountId = acct.Id);
+    insert opp;
+
+    // call Test_SharedNewPriceBookEntry to create a new Test PriceBookEntry
+    String pbeId = Test_SharedNewPriceBookEntry.createPriceBookEntry('Test TIER 1','TestRead');
+    
+    // Test Creation of the Shared PriceBookEntry
+    System.assertNotEquals(pbeId,null);
+    
+    // create new Line Item for the Opportunity
+    OpportunityLineItem oli = new OpportunityLineItem(OpportunityId = opp.id,Product_Type__c = 'Renewal',Quantity = 25,UnitPrice=10.00,PricebookEntryId = pbeId);
+    insert oli;
+
+    // Construct the standard controller
+    ApexPages.StandardController con = new ApexPages.StandardController(opp);
+
+    // create the controller
+    OpportunityCloneController ext = new OpportunityCloneController(con);
+
+    // Switch to test context
+    Test.startTest();
+
+    // call the autoRun method
+    PageReference ref = ext.autoRun();
+    
+    // create the matching page reference
+    PageReference redir = new PageReference('/' + ext.newRecordId);
+
+    // make sure the user is sent to the correct url
+    System.assertEquals(ref.getUrl(),redir.getUrl());
+    
+    // check that the new Opportunity was created successfully
+    Opportunity newOpp = [select id,CloseDate,License_Start_Date__c,License_End_Date__c from Opportunity where id = :ext.newRecordId];
+    System.assertNotEquals(newOpp, null);
+    
+    // check that the line item was created
+    List<OpportunityLineItem> newItems = [Select oli.Id From OpportunityLineItem oli where oli.OpportunityId = :newOpp.id];
+    System.assertEquals(newItems.size(),1);
+    
+    // Switch back to runtime context
+    Test.stopTest();
+}
+ 
+static testMethod void testCreatePrevRenewedOppCloneController() 
+{
+    // setup a reference to the page the controller is expecting with the parameters
+    PageReference pref = Page.CreateOppClone;
+    Test.setCurrentPage(pref);
+    
+    // call Test_SharedNewAccount to create a new Test Account
+    //Test_SharedNewAccount.createAccount('Test Account');
+    
+    // Test Creation of the Shared Account
+    Account acct = [SELECT Id FROM Account WHERE Name = 'NWEA Pottsboro' LIMIT 1];
+    System.Assert(acct != null, 'testNullOppCloneController.testNullOppCloneController FAIL: Account was not inserted properly!');
+
+    // setup a new Opportunity
+    Opportunity opp = new Opportunity(name = 'CreateOppTest Renewal',StageName = 'Solutions',CloseDate = Date.newInstance(2014,09,30),License_Start_Date__c = Date.newInstance(2014,09,1),License_End_Date__c = Date.newInstance(2015,09,30),AccountId = acct.Id);
+    insert opp;
+    
+    // call Test_SharedNewPriceBookEntry to create a new Test PriceBookEntry
+    String pbeId = Test_SharedNewPriceBookEntry.createPriceBookEntry('Test TIER 1','TestRead');
+    
+    // Test Creation of the Shared PriceBookEntry
+    System.assertNotEquals(pbeId,null);
+     
+    // create new Line Item for the Opportunity
+    OpportunityLineItem oli = new OpportunityLineItem(OpportunityId = opp.id,Product_Type__c = 'Renewal',Quantity = 25,UnitPrice=10.00,PricebookEntryId = pbeId);
+    insert oli;
+
+    // Construct the standard controller
+    ApexPages.StandardController con = new ApexPages.StandardController(opp);
+
+    // create the controller
+    OpportunityCloneController ext = new OpportunityCloneController(con);
+
+    // Switch to test context
+    Test.startTest();
+
+    // call the autoRun method
+    PageReference ref = ext.autoRun();
+    
+    // create the matching page reference
+    PageReference redir = new PageReference('/' + ext.newRecordId);
+
+    // make sure the user is sent to the correct url
+    System.assertEquals(ref.getUrl(),redir.getUrl());
+    
+    // check that the new Opportunity was created successfully
+    Opportunity newOpp = [select id,CloseDate,License_Start_Date__c,License_End_Date__c from Opportunity where id = :ext.newRecordId];
+    System.assertNotEquals(newOpp, null);
+    
+    // check that the line item was created
+    List<OpportunityLineItem> newItems = [Select oli.Id From OpportunityLineItem oli where OpportunityId = :newOpp.id];
+    System.assertEquals(newItems.size(),1);
+    
+    // Switch back to runtime context
+    Test.stopTest();
+}
+ 
+static testMethod void testBusOpsOppCloneController() 
+{
+    // setup a reference to the page the controller is expecting with the parameters
+    PageReference pref = Page.BusOpsOppClone;
+    Test.setCurrentPage(pref);
+    
+    // call Test_SharedNewAccount to create a new Test Account
+    //Test_SharedNewAccount.createAccount('Test Account');
+    
+    // Test Creation of the Shared Account
+    Account acct = [SELECT Id FROM Account WHERE Name = 'NWEA Pottsboro' LIMIT 1];
+    System.Assert(acct != null, 'testNullOppCloneController.testNullOppCloneController FAIL: Account was not inserted properly!');
+
+    // setup a new Opportunity
+    Opportunity opp = new Opportunity(name = 'BusOpsOppTest',StageName = 'Solutions',CloseDate = Date.newInstance(2013,09,30),License_Start_Date__c = Date.newInstance(2013,09,1),License_End_Date__c = Date.newInstance(2014,09,30),AccountId = acct.Id,Type = 'Enrollment');
+    insert opp;
+    
+    // call Test_SharedNewPriceBookEntry to create a new Test PriceBookEntry
+    String pbeId = Test_SharedNewPriceBookEntry.createPriceBookEntry('Test TIER 1','TestRead');
+    
+    // Test Creation of the Shared PriceBookEntry
+    System.assertNotEquals(pbeId,null);
+    
+    // create new Line Item for the Opportunity
+    OpportunityLineItem oli = new OpportunityLineItem(OpportunityId = opp.id,Product_Type__c = 'Renewal',Quantity = 25,UnitPrice=10.00,PricebookEntryId = pbeId);
+    insert oli;
+
+    // Construct the standard controller
+    ApexPages.StandardController con = new ApexPages.StandardController(opp);
+
+    // create the controller
+    OpportunityCloneController ext = new OpportunityCloneController(con);
+
+    // Switch to test context
+    Test.startTest();
+
+    // call the autoRun method
+    PageReference ref = ext.autoRun();
+    
+    // create the matching page reference
+    PageReference redir = new PageReference('/' + ext.newRecordId);
+
+    // make sure the user is sent to the correct url
+    System.assertEquals(ref.getUrl(),redir.getUrl());
+    
+    // check that the new Opportunity was created successfully
+    Opportunity newOpp = [select id,CloseDate,License_Start_Date__c,License_End_Date__c from Opportunity where id = :ext.newRecordId];
+    System.assertNotEquals(newOpp, null);
+    
+    // check that the dates have been updated properly
+    System.assertEquals(newOpp.CloseDate,Date.newInstance(2014,09,30));
+    System.assertEquals(newOpp.License_Start_Date__c,Date.newInstance(2014,09,1));
+    System.assertEquals(newOpp.License_End_Date__c,Date.newInstance(2015,09,30));
+    
+    // check that the line item was created
+    List<OpportunityLineItem> newItems = [Select oli.Id From OpportunityLineItem oli where OpportunityId = :newOpp.id];
+    System.assertEquals(newItems.size(),1);
+    
+    // Switch back to runtime context
+    Test.stopTest();
+}
+ 
+static testMethod void testBusOpsOppExpansionProdType() 
+{
+    // setup a reference to the page the controller is expecting with the parameters
+    PageReference pref = Page.BusOpsOppClone;
+    Test.setCurrentPage(pref);
+    
+    // call Test_SharedNewAccount to create a new Test Account
+    //Test_SharedNewAccount.createAccount('Test Account');
+    
+    // Test Creation of the Shared Account
+    Account acct = [SELECT Id FROM Account WHERE Name = 'NWEA Pottsboro' LIMIT 1];
+    System.Assert(acct != null, 'testNullOppCloneController.testNullOppCloneController FAIL: Account was not inserted properly!');
+
+    // setup a new Opportunity
+    Opportunity opp = new Opportunity(name = 'BusOpsOppTest',StageName = 'Solutions',CloseDate = Date.newInstance(2013,09,30),License_Start_Date__c = Date.newInstance(2013,09,1),License_End_Date__c = Date.newInstance(2014,09,30),AccountId = acct.Id,Type = 'Enrollment');
+    insert opp;
+    
+    // call Test_SharedNewPriceBookEntry to create a new Test PriceBookEntry
+    String pbeId = Test_SharedNewPriceBookEntry.createPriceBookEntry('Test TIER 1','TestRead');
+    
+    // Test Creation of the Shared PriceBookEntry
+    System.assertNotEquals(pbeId,null);
+    
+    // create new Line Item for the Opportunity
+    OpportunityLineItem oli = new OpportunityLineItem(OpportunityId = opp.id,Product_Type__c = 'Expansion',Quantity = 25,UnitPrice=10.00,PricebookEntryId = pbeId);
+    insert oli;
+
+    // Construct the standard controller
+    ApexPages.StandardController con = new ApexPages.StandardController(opp);
+
+    // create the controller
+    OpportunityCloneController ext = new OpportunityCloneController(con);
+
+    // Switch to test context
+    Test.startTest();
+
+    // call the autoRun method
+    PageReference ref = ext.autoRun();
+    
+    // create the matching page reference
+    PageReference redir = new PageReference('/' + ext.newRecordId);
+
+    // make sure the user is sent to the correct url
+    //System.assertEquals(ref.getUrl(),redir.getUrl());
+    
+    // check that the new Opportunity was created successfully
+    Opportunity newOpp = [select id,CloseDate,License_Start_Date__c,License_End_Date__c from Opportunity where id = :ext.newRecordId];
+    //System.assertNotEquals(newOpp, null);
+    
+    // check that the line item is Renewal for an Expansion Product Type
+    OpportunityLineItem newItemsPT = [Select oli.Product_Type__c From OpportunityLineItem oli where OpportunityId = :newOpp.id];
+    System.assertNotEquals(newItemsPT.Product_Type__c,'Expansion');
+    
+    // Switch back to runtime context
+    Test.stopTest();
+}
+ 
+static testMethod void testBusOpsPrevRenewedOppCloneController() 
+{
+    // setup a reference to the page the controller is expecting with the parameters
+    PageReference pref = Page.BusOpsOppClone;
+    Test.setCurrentPage(pref);
+    
+    // call Test_SharedNewAccount to create a new Test Account
+    //Test_SharedNewAccount.createAccount('Test Account');
+    
+    // Test Creation of the Shared Account
+    Account acct = [SELECT Id FROM Account WHERE Name = 'NWEA Pottsboro' LIMIT 1];
+    System.Assert(acct != null, 'testNullOppCloneController.testNullOppCloneController FAIL: Account was not inserted properly!');
+
+    // setup a new Opportunity
+    Opportunity opp = new Opportunity(name = 'BusOpsOppTest Renewal 14 - 15',StageName = 'Solutions',CloseDate = Date.newInstance(2014,09,30),License_Start_Date__c = Date.newInstance(2014,09,1),License_End_Date__c = Date.newInstance(2015,09,30),AccountId = acct.Id,Type = 'Renewal');
+    insert opp;
+    
+    // call Test_SharedNewPriceBookEntry to create a new Test PriceBookEntry
+    String pbeId = Test_SharedNewPriceBookEntry.createPriceBookEntry('Test TIER 1','TestRead');
+    
+    // Test Creation of the Shared PriceBookEntry
+    System.assertNotEquals(pbeId,null);
+     
+    // create new Line Item for the Opportunity
+    OpportunityLineItem oli = new OpportunityLineItem(OpportunityId = opp.id,Product_Type__c = 'Renewal',Quantity = 25,UnitPrice=10.00,PricebookEntryId = pbeId);
+    insert oli;
+
+    // Construct the standard controller
+    ApexPages.StandardController con = new ApexPages.StandardController(opp);
+
+    // create the controller
+    OpportunityCloneController ext = new OpportunityCloneController(con);
+
+    // Switch to test context
+    Test.startTest();
+
+    // call the autoRun method
+    PageReference ref = ext.autoRun();
+    
+    // create the matching page reference
+    PageReference redir = new PageReference('/' + ext.newRecordId);
+
+    // make sure the user is sent to the correct url
+    System.assertEquals(ref.getUrl(),redir.getUrl());
+    
+    // check that the new Opportunity was created successfully
+    Opportunity newOpp = [select id,CloseDate,License_Start_Date__c,License_End_Date__c from Opportunity where id = :ext.newRecordId];
+    System.assertNotEquals(newOpp, null);
+    
+    // check that the dates have been updated properly
+    System.assertEquals(newOpp.CloseDate,Date.newInstance(2015,09,30));
+    System.assertEquals(newOpp.License_Start_Date__c,Date.newInstance(2015,09,1));
+    System.assertEquals(newOpp.License_End_Date__c,Date.newInstance(2016,09,30));
+    
+    // check that the line item was created
+    List<OpportunityLineItem> newItems = [Select oli.Id From OpportunityLineItem oli where OpportunityId = :newOpp.id];
+    System.assertEquals(newItems.size(),1);
+    
+    // Switch back to runtime context
+    Test.stopTest();
+}
+ 
+static testMethod void testBusOpsOppCloneProdTypeController() 
+{
+    // setup a reference to the page the controller is expecting with the parameters
+    PageReference pref = Page.BusOpsOppClone;
+    Test.setCurrentPage(pref);
+    
+    // call Test_SharedNewAccount to create a new Test Account
+    //Test_SharedNewAccount.createAccount('Test Account');
+    
+    // Test Creation of the Shared Account
+    Account acct = [SELECT Id FROM Account WHERE Name = 'NWEA Pottsboro' LIMIT 1];
+    System.Assert(acct != null, 'testNullOppCloneController.testNullOppCloneController FAIL: Account was not inserted properly!');
+
+    // setup a new Opportunity
+    Opportunity opp = new Opportunity(name = 'BusOpsOppTest',StageName = 'Solutions',CloseDate = Date.newInstance(2013,09,30),License_Start_Date__c = Date.newInstance(2013,09,1),License_End_Date__c = Date.newInstance(2014,09,30),AccountId = acct.Id,Type = 'Enrollment');
+    insert opp;
+    
+    // call Test_SharedNewPriceBookEntry to create a new Test PriceBookEntry
+    String pbeId = Test_SharedNewPriceBookEntry.createPriceBookEntry('Test TIER 1','TestRead');
+    
+    // Test Creation of the Shared PriceBookEntry
+    System.assertNotEquals(pbeId,null);
+    
+    // create new Line Item for the Opportunity
+    OpportunityLineItem oli = new OpportunityLineItem(OpportunityId = opp.id,Product_Type__c = 'Expansion',Quantity = 25,UnitPrice=10.00,PricebookEntryId = pbeId);
+    insert oli;
+
+    // Construct the standard controller
+    ApexPages.StandardController con = new ApexPages.StandardController(opp);
+
+    // create the controller
+    OpportunityCloneController ext = new OpportunityCloneController(con);
+
+    // Switch to test context
+    Test.startTest();
+
+    // call the autoRun method
+    PageReference ref = ext.autoRun();
+    
+    // create the matching page reference
+    PageReference redir = new PageReference('/' + ext.newRecordId);
+
+    // make sure the user is sent to the correct url
+    System.assertEquals(ref.getUrl(),redir.getUrl());
+    
+    // check that the new Opportunity was created successfully
+    Opportunity newOpp = [select id,CloseDate,License_Start_Date__c,License_End_Date__c from Opportunity where id = :ext.newRecordId];
+    System.assertNotEquals(newOpp, null);
+    
+    // check that the dates have been updated properly
+    System.assertEquals(newOpp.CloseDate,Date.newInstance(2014,09,30));
+    System.assertEquals(newOpp.License_Start_Date__c,Date.newInstance(2014,09,1));
+    System.assertEquals(newOpp.License_End_Date__c,Date.newInstance(2015,09,30));
+    
+    // check that the line item was not created since product type is an invalid type - "expansion"
+    List<OpportunityLineItem> newItems = [Select oli.Id From OpportunityLineItem oli where OpportunityId = :newOpp.id];
+    System.assertEquals(newItems.size(),1);
+    
+    // Switch back to runtime context
+    Test.stopTest();
+}
+ 
+static testMethod void testBusOpsInvalidOppTypeController() 
+{
+    // setup a reference to the page the controller is expecting with the parameters
+    PageReference pref = Page.BusOpsOppClone;
+    Test.setCurrentPage(pref);
+    
+    // call Test_SharedNewAccount to create a new Test Account
+    //Test_SharedNewAccount.createAccount('Test Account');
+    
+    // Test Creation of the Shared Account
+    Account acct = [SELECT Id FROM Account WHERE Name = 'NWEA Pottsboro' LIMIT 1];
+    System.Assert(acct != null, 'testNullOppCloneController.testNullOppCloneController FAIL: Account was not inserted properly!');
+
+    // setup a new Opportunity
+    Opportunity opp = new Opportunity(name = 'BusOpsOppTest',StageName = 'Solutions',CloseDate = Date.newInstance(2013,09,30),License_Start_Date__c = Date.newInstance(2013,09,1),License_End_Date__c = Date.newInstance(2014,09,30),AccountId = acct.Id,Type = 'Training');
+    insert opp;
+    
+    // call Test_SharedNewPriceBookEntry to create a new Test PriceBookEntry
+    String pbeId = Test_SharedNewPriceBookEntry.createPriceBookEntry('Test TIER 1','TestRead');
+    
+    // Test Creation of the Shared PriceBookEntry
+    System.assertNotEquals(pbeId,null);
+    
+    // create new Line Item for the Opportunity
+    OpportunityLineItem oli = new OpportunityLineItem(OpportunityId = opp.id,Product_Type__c = 'Expansion',Quantity = 25,UnitPrice=10.00,PricebookEntryId = pbeId);
+    insert oli;
+
+    // Construct the standard controller
+    ApexPages.StandardController con = new ApexPages.StandardController(opp);
+
+    // create the controller
+    OpportunityCloneController ext = new OpportunityCloneController(con);
+
+    // Switch to test context
+    Test.startTest();
+
+    // call the autoRun method
+    PageReference ref = ext.autoRun();
+    
+    // create the matching page reference
+    PageReference redir = new PageReference('/' + ext.newRecordId);
+
+    // make sure the user is not sent to the normal url (should be sent to error page)
+    System.assertNotEquals(ref.getUrl(),redir.getUrl());
+    
+    // Switch back to runtime context
+    Test.stopTest();
+}
+ 
+static testMethod void testBusOpsOppCloneError() 
+{
+    // setup a reference to the page the controller is expecting with the parameters
+    PageReference pref = Page.BusOpsOppClone;
+    Test.setCurrentPage(pref);
+    
+    // call Test_SharedNewAccount to create a new Test Account
+    //Test_SharedNewAccount.createAccount('Test Account');
+    
+    // Test Creation of the Shared Account
+    Account acct = [SELECT Id FROM Account WHERE Name = 'NWEA Pottsboro' LIMIT 1];
+    System.Assert(acct != null, 'testNullOppCloneController.testNullOppCloneController FAIL: Account was not inserted properly!');
+
+    // setup a new Opportunity
+    Opportunity opp = new Opportunity(name = 'BusOpsOppTest',StageName = 'Solutions',CloseDate = Date.newInstance(2013,09,30),License_Start_Date__c = Date.newInstance(2013,09,1),License_End_Date__c = Date.newInstance(2014,09,30),AccountId = acct.Id,Type = 'Training');
+    insert opp;
+    
+    // Construct the standard controller
+    ApexPages.StandardController con = new ApexPages.StandardController(opp);
+    
+    // create the controller
+    OpportunityCloneController ext = new OpportunityCloneController(con);
+
+    // call to get the SectionHeader for when we need to go to the error page
+    Component.Apex.SectionHeader secHeader = ext.getBusOpsOppCloneError();
+    
+    // Switch to test context
+    Test.startTest();
+
+    // make sure the user is not sent to the normal url (should be sent to error page)
+    System.assertEquals(secHeader.title,'ERROR');
+    System.assertEquals(secHeader.subtitle,'INVALID Opportunity Type to be Cloned');
+    
+    // Switch back to runtime context
+    Test.stopTest();
+
+}
+
+}
