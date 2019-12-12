@@ -1,0 +1,12 @@
+// 10/04/2013
+@isTest
+public class Test_SharedNewAccount 
+{
+    // create a new Account to be used for testing
+    public static void createAccount(String strAccountName) 
+    {
+        Account a = new Account();
+        a.Name = strAccountName;
+        insert a;
+    }
+}
