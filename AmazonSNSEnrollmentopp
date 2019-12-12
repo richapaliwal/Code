@@ -1,0 +1,107 @@
+public class AmazonSNSEnrollmentOpportunity
+{
+	@InvocableMethod(label='Send Amazon SNS Enrollment Opportunity' description='Sends list of enrollment Opportunity information for Implementation Automation to Amazon SNS.')    
+	public static void sendRequestOpp(List<ID> ids) 
+    {
+		//System.debug('AmazonSNSAddRequest.sendRequest top');
+		
+		Opportunity Oppo = [SELECT ACCOUNTID, Name, Type,Region__c, Implementation_Case_Record_ID__c, Implementation_Case_Number__c, Implementation_Contact__c, OWNERID, LASTMODIFIEDDATE, LASTMODIFIEDBYID, MAP_Growth_MAP_Skills_Implementation__c, EXPEDITED_Implementation__c, Re_Implementation__c, Do_Not_Send_Welcome_Email__c,Imp_Needed__c FROM Opportunity WHERE Id in :ids Limit 1];
+        
+		Account acct = [SELECT NAME, AGENCY_CODE__C, ID FROM ACCOUNT WHERE ID = :Oppo.ACCOUNTID];
+        
+		User Owner = [SELECT NAME, FIRSTNAME, LASTNAME, EMAIL FROM USER WHERE ID = :Oppo.OWNERID];     
+        
+		User user = [SELECT NAME, FIRSTNAME, LASTNAME, EMAIL FROM USER WHERE ID = :Oppo.LASTMODIFIEDBYID];
+        
+        Contact cont = new Contact();
+        cont.FIRSTNAME = null;
+        cont.LASTNAME = null;
+        cont.EMAIL = null;
+        
+		if(Oppo.Implementation_Contact__c != null)
+        {
+        cont = [SELECT FIRSTNAME, LASTNAME, EMAIL,ID FROM CONTACT WHERE ID = :Oppo.Implementation_Contact__c];
+        }
+		
+        AWS_OpportunityInvites inv1 = new AWS_OpportunityInvites();
+
+		
+		inv1.setAccountName(acct.NAME);
+		//System.debug('AmazonSNSAddRequest.acct.NAME ' + acct.NAME);
+
+        inv1.setAccountId(acct.ID);
+		
+		inv1.setAgencyCode(acct.AGENCY_CODE__C);
+		//System.debug('AmazonSNSAddRequest.acct.AGENCY_CODE__C ' + acct.AGENCY_CODE__C);
+		
+		inv1.setImplementationContactfirstName(cont.FIRSTNAME);
+		//System.debug('AmazonSNSAddRequest.Cont.FIRSTNAME ' + cont.FIRSTNAME);
+		
+		inv1.setImplementationContactlastName(cont.LASTNAME);
+		//System.debug('AmazonSNSAddRequest.Cont.LASTNAME ' + cont.LASTNAME);
+		
+		inv1.setImplementationContactEmail(cont.EMAIL);
+		//System.debug('AmazonSNSAddRequest.Cont.EMAIL ' + cont.EMAIL);
+
+        inv1.setImplementationContactId(cont.ID);
+		//System.debug('AmazonSNSAddRequest.Cont.Id ' + cont.Id);		
+
+        inv1.setOpportunityOwnerName(Owner.NAME);
+		//System.debug('AmazonSNSAddRequest.OwnerName' + user.NAME);	
+
+        inv1.setOpportunityOwnerEmail(Owner.EMAIL);
+		
+		inv1.setSource('Salesforce');
+		//System.debug('AmazonSNSAddRequest.Source: Salesforce');
+
+			
+		Long lLastModifiedDate = Oppo.LASTMODIFIEDDATE.getTime();
+		inv1.setLastModifiedDate(String.valueOf(lLastModifiedDate/1000));
+		//System.debug('AmazonSNSAddRequest.Cont.LASTMODIFIEDDATE ' + String.valueOf(lLastModifiedDate));
+		
+		inv1.setLastModifiedByLastName(user.LASTNAME);
+		//System.debug('AmazonSNSAddRequest.USER.LASTNAME ' + user.LASTNAME);
+		
+		inv1.setLastModifiedByFirstName(user.FIRSTNAME);
+		//System.debug('AmazonSNSAddRequest.USER.FIRSTNAME ' + user.FIRSTNAME);
+		
+		inv1.setLastModifiedByEmail(user.EMAIL);
+		//System.debug('AmazonSNSAddRequest.USER.EMAIL ' + user.EMAIL);
+		
+		inv1.setOpportunityID(Oppo.ID);
+		//System.debug('AmazonSNSAddRequest.Oppo.ID ' + Oppo.ID);
+		
+		inv1.setMAPGrowth_MAPSkillsImplementation(Oppo.MAP_Growth_MAP_Skills_Implementation__c);
+		//System.debug('AmazonSNSAddRequest.Oppo.MAP_Growth_MAP_Skills_Implementation__c ' + Oppo.MAP_Growth_MAP_Skills_Implementation__c);
+		
+		inv1.setEXPEDITEDImplementation(Oppo.EXPEDITED_Implementation__c);
+		//System.debug('AmazonSNSAddRequest.Oppo.EXPEDITED_Implementation__c ' + Oppo.EXPEDITED_Implementation__c);
+		
+		inv1.setReImplementation(Oppo.Re_Implementation__c);
+		//System.debug('AmazonSNSAddRequest.Oppo.Re_Implementation__c ' + Oppo.Re_Implementation__c);
+
+        inv1.setImplementationCaseID(Oppo.Implementation_Case_Record_ID__c);
+
+        inv1.setImplementationCaseNumber(Oppo.Implementation_Case_Number__c);
+
+        inv1.setDoNotSendWelcomeEmail(Oppo.Do_Not_Send_Welcome_Email__c);
+
+        inv1.setImpNeeded(Oppo.Imp_Needed__c);
+        
+        inv1.setRegion(Oppo.Region__c);
+        
+        List<AWS_OpportunityInvites> invites = new List<AWS_OpportunityInvites>();
+        invites.add(inv1);
+        String invitesJSON = JSON.serialize(invites);
+		System.debug('AmazonSNSAddRequest.invitesJSON: ' + invitesJSON);
+        String topicArn = 'arn:aws:sns:us-west-2:076843697520:Salesforce-Enrollment-Change';
+        String subject = 'Salesforce Enrollment Change';
+		//String topicArn = 'arn:aws:sns:us-west-2:076843697520:Salesforce-Enrollment-Change-DEV';
+        //String subject = 'Sandbox-Salesforce Enrollment Change';
+
+        AmazonSNSSender aws_sender = new AmazonSNSSender();
+        aws_sender.sendDynamicMessage(invitesJSON,topicArn,subject);
+		
+		System.debug('AmazonSNSAddRequest.sendRequest bottom');
+    }
+}
