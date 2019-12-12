@@ -1,0 +1,531 @@
+// 10/10/2013
+// Updated 05/29/2014
+// Updated 08/11/2015
+// Updated 08/18/2016
+// Updated 01/30/2017
+// Updated 03/03/2017
+public class OpportunityCloneController 
+{
+  //added an instance varaible for the standard controller
+  private ApexPages.StandardController controller {get; set;}
+  
+  // add the instance for the variables being passed by id on the url
+  public Opportunity opp {get;set;}
+
+  // set the id of the record that is created -- ONLY USED BY THE TEST CLASS
+  public ID newRecordId {get;set;}
+
+public OpportunityCloneController(ApexPages.StandardController controller) 
+{
+  //initialize the stanrdard controller
+  this.controller = controller;
+  
+  // load the current record
+  opp = (Opportunity)controller.getRecord();
+}
+
+public PageReference autoRun() 
+{
+  //Get current Opportunity ID
+  String oppID = opp.Id;
+  if (oppID == null) 
+  {
+   // Display the Visualforce page's content if no Id is passed over
+   return null;
+  }
+  // Get the sObject describe result for the Opportunity object
+  Schema.DescribeSObjectResult rOpp = Opportunity.sObjectType.getDescribe(); 
+  Map<String, Schema.SObjectField> M = rOpp.fields.getMap(); //Generate a Map of the fields
+
+  //Now loop through the list of Field Names and concatenate the SOQL query string
+  String SOQL = 'Select '; 
+  for (String fieldName : M.keySet())
+  {
+     SOQL += fieldName + ',';  
+  } 
+  SOQL = SOQL.substring(0,SOQL.length()-1);  //Remove the last , unnecessary comma
+  SOQL += ' From Opportunity o where id=\''+oppID+'\' LIMIT 1' ;  
+  
+  //Execute SOQL & Cast the sObject type into an Opportunity
+  sObject S = Database.query(SOQL); 
+  opp = (Opportunity)S; 
+   
+  //Create the Cloned Opportunity objects
+  Opportunity clonedOpp = null;
+  Opportunity returnedClonedOpp = null;
+  PageReference pageRef = null;
+  
+  //Determine if this is being called by the Business Operations or Create Cloning
+  if (getPageName() == 'BusOpsOppClone')
+  {
+      if (opp.Type == 'Enrollment' || opp.Type == 'Renewal' || opp.Type == 'Enrollment in Web-based MAP' || opp.Type == 'Conversion in Web-based MAP')
+      {
+          //Clone the Opportunity - default certain fields
+          clonedOpp = opp.clone(false,true);
+          returnedClonedOpp = createBusOpsClonedOpportunity(clonedOpp, opp, oppID, M);
+      }
+      else
+      {
+          pageRef = Page.BusOpsOppCloneErrorPage;
+          pageRef.setRedirect(true);
+          ApexPages.Message myMsg = new ApexPages.Message(ApexPages.Severity.ERROR,'ERROR: INVALID Opportunity Type to be Cloned');
+          ApexPages.addMessage(myMsg);   
+          return pageRef;
+      }
+  }
+  else
+  {
+      //Clone the Opportunity - default certain fields
+      clonedOpp = opp.clone(false,true);
+      returnedClonedOpp = createCreateClonedOpportunity(clonedOpp, opp, oppID, M);
+  }
+   
+  // Go to the new Opportunity
+  pageRef = new PageReference('/' + returnedClonedOpp.Id);
+  pageRef.setRedirect(true);
+  return pageRef;
+}
+
+public Opportunity createCreateClonedOpportunity(Opportunity clonedOpp, Opportunity opp, String oppID, Map<String, Schema.SObjectField> M)
+{
+  if (M.keySet().contains('name'))
+  {  
+      // Populate new Opportunity Name - add "Renewal" and "X" text
+      if (opp.Name.containsIgnoreCase('Renewal'))
+      {
+            clonedOpp.Name += 'X';
+      }
+      else
+      {
+            clonedOpp.Name=opp.Name + ' RenewalX';
+      }
+  } 
+  
+  /*.... All the other related objects like OpportunityLineItems : */
+  List<OpportunityLineItem> toBeClonedLineItems = new List<OpportunityLineItem>(); 
+  toBeClonedLineItems = getOpportunityLineItems(oppID);
+
+  insert clonedOpp;
+
+  // set the id of the new po created for testing
+  newRecordId = clonedOpp.id;
+
+  for (OpportunityLineItem li: toBeClonedLineItems)
+  {
+     li.OpportunityId = newRecordId;
+  }
+  insert (toBeClonedLineItems);
+
+  return clonedOpp;
+}
+
+public Opportunity createBusOpsClonedOpportunity(Opportunity clonedOpp, Opportunity opp, String oppID, Map<String, Schema.SObjectField> M)
+{
+  // Verify fields exist before updating them
+  
+  if (opp.Type == 'Enrollment')
+  {
+      if (M.keySet().contains('region__c'))
+      {  
+          clonedOpp.Region__c = null;
+      } 
+  }
+  // If not Enrollment, blank out the Pilot checkbox
+  else
+  {
+      if (M.keySet().contains('pilot__c'))
+      {  
+          clonedOpp.Pilot__c = false;
+      } 
+  }
+  
+  if (M.keySet().contains('syncedquoteid'))
+  {  
+      clonedOpp.SyncedQuoteId = null;
+  } 
+    
+  if (M.keySet().contains('type'))
+  {  
+      clonedOpp.Type='Renewal';
+  } 
+    
+  if (M.keySet().contains('probability'))
+  {  
+      clonedOpp.Probability = 10.0;
+  } 
+    
+  if (M.keySet().contains('stagename'))
+  {  
+      clonedOpp.StageName='Prospect';
+  } 
+    
+  if (M.keySet().contains('purchase_order__c'))
+  {  
+      clonedOpp.purchase_order__c = null;
+  } 
+    
+  if (M.keySet().contains('description'))
+  {  
+      clonedOpp.description = null;
+  }
+
+  if (M.keySet().contains('mrl_math_version__c'))
+  {  
+      clonedOpp.mrl_math_version__c = null;
+  }
+
+  if (M.keySet().contains('mrl_reading_version__c'))
+  {  
+      clonedOpp.mrl_reading_version__c = null;
+  }
+  
+  if (M.keySet().contains('mrl_lang_version__c'))
+  {  
+      clonedOpp.mrl_lang_version__c = null;
+  }
+  
+  if (M.keySet().contains('science_version__c'))
+  {  
+      clonedOpp.science_version__c = null;
+  }
+  
+  if (M.keySet().contains('mpg_math_version__c'))
+  {  
+      clonedOpp.mpg_math_version__c = null;
+  }
+  
+  if (M.keySet().contains('mpg_reading_version__c'))
+  {  
+      clonedOpp.mpg_reading_version__c = null;
+  }
+  
+  if (M.keySet().contains('prepaid__c'))
+  {  
+      clonedOpp.prepaid__c = false;
+  }
+  
+  if (M.keySet().contains('tops__c'))
+  {  
+      clonedOpp.tops__c = null;
+  }
+  
+  if (M.keySet().contains('anticipatged_1st_test_season__c'))
+  {  
+      clonedOpp.anticipatged_1st_test_season__c = null;
+  }
+  
+  if (M.keySet().contains('online_map_admin__c'))
+  {  
+      clonedOpp.online_map_admin__c = false;
+  }
+  
+  if (M.keySet().contains('quote_status__c'))
+  {  
+      clonedOpp.quote_status__c = null;
+  }
+  
+  if (M.keySet().contains('campaignid'))
+  {  
+      clonedOpp.campaignid = null;
+  }
+  
+  if (M.keySet().contains('forecastcategoryname'))
+  {  
+      clonedOpp.forecastcategoryname = 'Solution';
+  }
+  
+  if (M.keySet().contains('created_from_lead__c'))
+  {  
+      clonedOpp.created_from_lead__c = false;
+  }
+  
+  if (M.keySet().contains('finance_stage__c'))
+  {  
+      clonedOpp.finance_stage__c = null;
+  }
+  
+  if (M.keySet().contains('reason_not_invoiced__c'))
+  {  
+      clonedOpp.reason_not_invoiced__c = null;
+  }
+  
+  if (M.keySet().contains('invoiced_date__c'))
+  {  
+      clonedOpp.invoiced_date__c = null;
+  }
+  
+  if (M.keySet().contains('closed_won_detail__c'))
+  {  
+      clonedOpp.closed_won_detail__c = null;
+  }
+  
+  if (M.keySet().contains('closed_won_reason__c'))
+  {  
+      clonedOpp.closed_won_reason__c = null;
+  }
+  
+  if (M.keySet().contains('closed_lost_detail__c'))
+  {  
+      clonedOpp.closed_lost_detail__c = null;
+  }
+  
+  if (M.keySet().contains('closed_lost_reason__c'))
+  {  
+      clonedOpp.closed_lost_reason__c = null;
+  }
+  
+    if (M.keySet().contains('implementation_contact__c'))
+  {  
+      clonedOpp.implementation_contact__c = null;
+  }
+
+  if (M.keySet().contains('implementation_notes__c'))
+  {  
+      clonedOpp.implementation_notes__c = null;
+  }
+  
+  if (M.keySet().contains('test_alignment_option__c'))
+  {  
+      clonedOpp.test_alignment_option__c = null;
+  }
+  
+  if (M.keySet().contains('test_alignment_notes__c'))
+  {  
+      clonedOpp.test_alignment_notes__c = null;
+  }
+  
+  if (M.keySet().contains('am_region__c'))
+  {  
+      clonedOpp.am_region__c = null;
+  }
+  
+  if (M.keySet().contains('mrl_math_intl__c'))
+  {  
+      clonedOpp.mrl_math_intl__c = null;
+  }
+  
+  if (M.keySet().contains('mrl_read_lang_intl__c'))
+  {  
+      clonedOpp.mrl_read_lang_intl__c = null;
+  }
+  
+  if (M.keySet().contains('sci_intl__c'))
+  {  
+      clonedOpp.sci_intl__c = null;
+  }
+  
+  if (M.keySet().contains('mpg_math_intl__c'))
+  {  
+      clonedOpp.mpg_math_intl__c = null;
+  }
+  
+  if (M.keySet().contains('implementation_case_number__c'))
+  {  
+      clonedOpp.implementation_case_number__c = null;
+  }
+   
+  if (M.keySet().contains('manually_process_order__c'))
+  {  
+      clonedOpp.manually_process_order__c = null;
+  }
+    if (M.keySet().contains('invoiced_by__c'))
+  {  
+      clonedOpp.invoiced_by__c= null;
+  }
+    
+  if (M.keySet().contains('sales_ops_notes__c'))
+  {  
+      clonedOpp.sales_ops_notes__c = null;
+  }
+    
+  if (M.keySet().contains('implementation_case_record_id__c'))
+  {  
+      clonedOpp.implementation_case_record_id__c = null;
+  }
+    
+  if (M.keySet().contains('mpg_read_intl__c'))
+  {  
+      clonedOpp.mpg_read_intl__c = null;
+  }    
+  
+  if (M.keySet().contains('license_start_date__c'))
+  {  
+      // Add 1 year to License_Start_Date
+      if(opp.License_Start_Date__c != null)
+      {
+          clonedOpp.License_Start_Date__c = (opp.License_Start_Date__c).addYears(1);
+      }
+  }  
+  
+  if (M.keySet().contains('license_end_date__c'))
+  {  
+      // Add 1 year to License_End_Date
+      if(opp.License_End_Date__c != null)
+      {
+          clonedOpp.License_End_Date__c = (opp.License_End_Date__c).addYears(1);
+      }
+  }  
+  
+  if (M.keySet().contains('closedate'))
+  {  
+      // Add 1 year to CloseDate
+      if(opp.CloseDate != null)
+      {
+          clonedOpp.CloseDate = (opp.CloseDate).addYears(1);
+      }
+  }
+      
+  if (M.keySet().contains('name'))
+  {  
+      // Populate new Opportunity Name - add "Renewal" text and "New Year From/New Year To" Dates
+      if (opp.Name.containsIgnoreCase('Renewal'))
+      {
+        clonedOpp.Name = opp.Name.substring(0,opp.Name.indexOf('Renewal')+7);
+        if (clonedOpp.License_Start_Date__c != null && clonedOpp.License_End_Date__c != null)
+        {
+            clonedOpp.Name += ' ' + string.valueof((clonedOpp.License_Start_Date__c).year()).substring(2) + ' - ' + string.valueof((clonedOpp.License_End_Date__c).year()).substring(2);
+        }
+      }
+      else
+      {
+        clonedOpp.Name=opp.Name + ' Renewal';
+        if (clonedOpp.License_Start_Date__c != null && clonedOpp.License_End_Date__c != null)
+        {
+            clonedOpp.Name += ' ' + string.valueof((clonedOpp.License_Start_Date__c).year()).substring(2) + ' - ' + string.valueof((clonedOpp.License_End_Date__c).year()).substring(2);
+        }
+      }
+  }
+      
+  if (M.keySet().contains('ownerid'))
+  {  
+      // Update the Owner to the Account Owner
+      sObject AccountS = Database.query('Select a.OwnerId from Account a where a.id =\''+opp.accountid+'\' '); 
+      Account acct = (Account)AccountS; 
+    
+      clonedOpp.ownerid = acct.OwnerId;
+  }
+    
+  if (M.keySet().contains('pa_invoicing_instructions__c'))
+  {  
+      clonedOpp.pa_invoicing_instructions__c = null;
+  }
+
+    
+    
+  /*.... All the other related objects like OpportunityLineItems : */
+  List<OpportunityLineItem> toBeClonedLineItems = new List<OpportunityLineItem>(); 
+  toBeClonedLineItems = getOpportunityLineItems(oppID);
+     
+  // Insert new cloned Opportunity    
+  insert clonedOpp;
+
+  // set the id of the new po created for testing
+  newRecordId = clonedOpp.id;
+
+  
+  // Checks whether there was at least 1 valid Opportunity Line Items or not (based on Product Type)
+  // Ideally, we would like to let the user know when there is no Valid Opportunity Line Items
+  if (!toBeClonedLineItems.isEmpty())
+  {
+      // Valid Line Items exist
+      // Insert new Opportunity Line Items
+      for (OpportunityLineItem li: toBeClonedLineItems)
+      {
+         li.OpportunityId = newRecordId;
+          li.Imp_Needed__c = 'No';
+      }
+      insert (toBeClonedLineItems);
+  }
+  
+  return clonedOpp;
+}
+
+public List<OpportunityLineItem> getOpportunityLineItems(String oppID)
+{
+  // Get the sObject describe result for the OpportunityLineItem object
+  Schema.DescribeSObjectResult rOppLI = OpportunityLineItem.sObjectType.getDescribe(); 
+  Map<String, Schema.SObjectField> M = rOppLI.fields.getMap(); //Generate a Map of the fields
+
+  // Get the sObject describe result for the PricebookEntry object 
+  Schema.DescribeSObjectResult rPBE = PricebookEntry.sObjectType.getDescribe(); 
+  Map<String, Schema.SObjectField> Mpbe = rPBE .fields.getMap(); //Generate a Map of the fields
+
+  //Now loop through the list of Field Names and concatenate the SOQL query string
+  String SOQL = 'Select '; 
+  for (String fieldName : M.keySet())
+  {
+     if (fieldName == 'totalprice')
+     {
+         // only one of unit price or total price may be specified
+     }
+     else
+     {
+         SOQL += 'oli.' + fieldName + ',';
+     }
+  } 
+  SOQL = SOQL.substring(0,SOQL.length()-1);  //Remove the last , unnecessary comma
+  if (Mpbe.keySet().contains('productcode'))
+  {
+      // Also get the PricebookEntry.ProductCode if it exists  
+      SOQL += ',oli.PricebookEntry.ProductCode';
+  }
+  SOQL += ' From OpportunityLineItem oli where oli.OpportunityId =\''+oppID+'\' ' ;  
+
+  List<OpportunityLineItem> allLineItems = Database.query(SOQL);
+  List<OpportunityLineItem> toBeClonedLineItems = new List<OpportunityLineItem>();               
+  //Loop thru the Opportunity Line Items
+  for (OpportunityLineItem li: allLineItems)
+  {
+      // Only copy Products of type "New" or "Renewal"
+      if (getPageName() == 'BusOpsOppClone')
+      {
+          if (li.Product_Type__c == 'New' || li.Product_Type__c == 'Renewal' || li.Product_Type__c == 'Expansion')
+          {
+              Id tempOpportunityId = li.OpportunityId;
+              if(tempOpportunityId == oppID)
+              {
+                 OpportunityLineItem clonedLineItem = new OpportunityLineItem();
+                 clonedLineItem = li.clone(false, true);
+                 if (clonedLineItem.Product_Type__c == 'Expansion')
+                 {
+                     clonedLineItem.Product_Type__c = 'Renewal';
+                 }
+                 toBeClonedLineItems.add(clonedLineItem);
+              }
+          }
+      }
+      else
+      {
+          Id tempOpportunityId = li.OpportunityId;
+          if(tempOpportunityId == oppID)
+          {
+             OpportunityLineItem clonedLineItem = new OpportunityLineItem();
+             clonedLineItem = li.clone(false, true);
+             toBeClonedLineItems.add(clonedLineItem);
+          }
+      }
+  } 
+  return toBeClonedLineItems;
+}
+
+public string getPageName()
+{
+  String pageName = ApexPages.CurrentPage().getUrl();     
+  pageName = pageName.replaceFirst('/apex/','');          
+  pageName = EncodingUtil.urlEncode(pageName, 'UTF-8');   
+  string[] pageNameExtra = pageName.split('%3F',0);   
+  pageName = pageNameExtra[0];                            
+  return pageName;                                       
+}
+
+public Component.Apex.SectionHeader getBusOpsOppCloneError() 
+{
+  Component.Apex.SectionHeader sectionHeader = new Component.Apex.SectionHeader();
+  sectionHeader.description = 'This error is the result of attempting to clone an Opportunity with a type that is not clonable';
+  sectionHeader.title = 'ERROR';
+  sectionHeader.subtitle = 'INVALID Opportunity Type to be Cloned';
+  sectionHeader.rendered = true;
+  return sectionHeader;
+}
+
+}
