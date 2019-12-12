@@ -1,0 +1,135 @@
+trigger OppInvoicedCreateImpCase on Opportunity (after update) 
+{
+    if(checkRecursive.runOnce())
+    {
+  //string recordtype = Schema.SObjectType.Case.getRecordTypeInfosByName().get('Skills Navigator Implementation').getRecordTypeId();
+    List<Case> cases = new List<Case>();
+    system.debug('##-1');
+                       
+    List<OpportunityLineItem> oppProd = new List<OpportunityLineItem>();
+     oppProd = [SELECT Id,Component_1__c, PricebookEntry.Product2.Name,PricebookEntry.Product2.Component_1__c FROM OpportunityLineItem WHERE OpportunityId IN :Trigger.new AND (PricebookEntry.Product2.Component_1__c != 'MRL' AND PricebookEntry.Product2.Component_1__c != 'PG1' AND PricebookEntry.Product2.Component_1__c != 'SCI') AND Imp_Needed__c = 'Yes'];
+                  system.debug('@@@oppProd' +oppProd);
+                   system.debug('@@@oppProd Size' +oppProd.size());
+                   
+     List<OpportunityLineItem> oppProd_mrl = new List<OpportunityLineItem>();
+     oppProd_mrl = [SELECT Id,Component_1__c, PricebookEntry.Product2.Name,PricebookEntry.Product2.Component_1__c FROM OpportunityLineItem WHERE OpportunityId IN :Trigger.new AND (PricebookEntry.Product2.Component_1__c = 'MRL' OR PricebookEntry.Product2.Component_1__c = 'PG1' OR PricebookEntry.Product2.Component_1__c = 'SCI') AND Imp_Needed__c = 'Yes'];
+                   system.debug('##3oppProd_mrl.size' +oppProd_mrl.size());
+                   system.debug('##3oppProd_mrl'+oppProd_mrl);
+
+    
+    for (Opportunity opp: Trigger.New)
+    { 
+       system.debug('##0');
+       system.debug('##old finance stage' +Trigger.oldMap.get(opp.Id).Finance_Stage__c);
+       system.debug('##new finance stage' +opp.Finance_Stage__c);
+        
+        if(opp.Implementation_Case_Number__c == null)
+        {
+        
+        if(trigger.isUpdate && (opp.Finance_Stage__c !=  Trigger.oldMap.get(opp.Id).Finance_Stage__c) && (opp.Finance_Stage__c).equals('Invoiced'))
+        {
+            system.debug('##1');
+            if((opp.Type).equals('Enrollment' )|| (opp.Type).equals('Renewal') || (opp.Type).equals('Expansion') ) 
+            {
+                system.debug('##2');
+               if(opp.Imp_Needed__c > 0)
+               {   
+                   
+                   for(OpportunityLineItem Oli : oppProd )
+                    {
+                         case newcase= new case(); 
+                                              
+                      if(Oli.Component_1__c == 'SKN')
+                                    {
+                                    newcase.Product_Suite__c = 'MAP Skills';
+                                    newcase.Sub_Category__c = 'Skills Navigator';
+                        system.debug('##opportunity with MRL and SKN');
+                                    }
+                                    
+                             if(Oli.Component_1__c == 'Read')
+                                    {
+                                    newcase.Product_Suite__c = 'MAP Reading Fluency';
+                                    newcase.Sub_Category__c = 'Reading Fluency';
+                                        system.debug('##Opportunity with MRL and Read');
+                                    }
+                        
+                                                system.debug('----------opp.AccountId---->'+opp.AccountId);
+                        newcase.AccountId=opp.AccountId;
+                               system.debug('@@@16');
+                        newcase.Opportunity__c=opp.Id;
+                        newcase.Subject='An Opportunity has been Invoiced for this account';
+                        newcase.Status='To Be Assigned';            
+                        newcase.Priority='Medium';
+                        //newcase.Date_Received__c = system.now();
+                        newcase.Category__c = 'Implementation';
+                        newcase.ContactId = opp.Implementation_Contact__c;
+                        newcase.Contact_Notes__c = opp.Implementation_Notes__c;
+                        newcase.Fall_Term_Start_Date__c = 'August 1';
+                        newcase.Paper_Pencil__c = 'N';
+                        newcase.Description = opp.Description;
+                        newcase.contact_notes__c   = opp.Implementation_Notes__c;
+                        newcase.RecordTypeId= '01270000000HpsUAAS';         
+                        newcase.ownerId='00G39000003MEloEAG';
+                        newcase.Origin='Staff Submit';
+                                    cases.add(newcase);
+                               system.debug('##MRL case subitted');
+                        
+                    }
+                   
+                   
+
+                   
+                   if(oppProd_mrl.size() > 0)
+                    {
+                              case newcase= new case(); 
+                          
+                               system.debug('##it has MRL');
+                               newcase.Product_Suite__c = 'MAP Growth';
+                               system.debug('##5');
+                                newcase.Sub_Category__c = 'Web-based MAP';
+                        
+                        
+                                                system.debug('----------opp.AccountId---->'+opp.AccountId);
+                        newcase.AccountId=opp.AccountId;
+                               system.debug('@@@6');
+                        newcase.Opportunity__c=opp.Id;
+                        newcase.Subject='An Opportunity has been Invoiced for this account';
+                        newcase.Status='To Be Assigned';            
+                        newcase.Priority='Medium';
+                        //newcase.Date_Received__c = system.now();
+                        newcase.Category__c = 'Implementation';
+                        newcase.ContactId = opp.Implementation_Contact__c;
+                        newcase.Contact_Notes__c = opp.Implementation_Notes__c;
+                        newcase.Fall_Term_Start_Date__c = 'August 1';
+                        newcase.Paper_Pencil__c = 'N';
+                        newcase.Description = opp.Description;
+                        newcase.contact_notes__c   = opp.Implementation_Notes__c;
+                        newcase.RecordTypeId= '01270000000HiQSAA0';         
+                        newcase.ownerId='00G39000003MEloEAG';
+                        newcase.Origin='Staff Submit';
+                                    cases.add(newcase);
+                               system.debug('##MRL case subitted');
+
+                    }                              
+                       
+                 }                   
+            }
+
+        } 
+    }
+        
+    }
+            
+        
+    
+         system.debug('##8');
+    
+    if(cases.size()!=0 && cases.size()!=null)
+    {
+        system.debug('----------cases.size()---->'+cases.size());
+        insert cases;
+        system.debug('##9');
+        
+    }
+    }
+}
