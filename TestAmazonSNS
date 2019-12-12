@@ -1,0 +1,38 @@
+@isTest 
+private class TestAmazonSNS 
+{
+    static testMethod void validateAmazonSNS() 
+    {
+		Test.StartTest();
+    
+		// call Test_SharedNewAccount to create a new Test Account
+		Test_SharedNewAccount.createAccount('Test Account');
+	
+		// Test Creation of the Shared Account
+		Account acct = [SELECT Id FROM Account WHERE Name = 'Test Account' LIMIT 1];
+		System.Assert(acct != null, 'TestAmazonSNS.validateAmazonSNS FAIL: Account was not inserted properly!');
+		
+		//Create a Contact and Add Role Type of 'Map Roles' and Role of 'DPD Administrator'
+    	Contact contact = new Contact(ACCOUNTID = acct.Id, FIRSTNAME = 'Test',LASTNAME = 'Contact',EMAIL = 'test.contact@nwea.org',MAP_ROLE__C = 'DPD Adminitrator',STATUS__C = 'true');
+    	insert contact;
+
+		System.Assert(contact != null, 'TestAmazonSNS.validateAmazonSNS FAIL: Contact was not inserted properly!');
+        
+		List<id> ids1 = new List<id>();
+		ids1.add(ID.valueOf(contact.id));
+
+		//Add Role of 'DPD Administrator'
+		AmazonSNSAddRequest.sendRequestAdd(ids1);
+
+		contact.MAP_ROLE__C = null;
+        update contact;
+		
+		List<id> ids2 = new List<id>();
+		ids2.add(ID.valueOf(contact.id));
+
+		//Remove Role of 'DPD Administrator'
+        AmazonSNSRemoveRequest.sendRequestRemove(ids2);
+		
+		Test.StopTest();
+    }
+}
